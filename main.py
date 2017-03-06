@@ -15,7 +15,7 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
+parser.add_argument('--epochs', type=int, default=5, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01)')
@@ -25,7 +25,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='how many batches to wait before logging training status')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -33,6 +33,11 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
+
+print("Number of epochs: ", args.epochs)
+print("Batch size: ", args.batch_size)
+print("Log interval: ", args.log_interval)
+print("Learning rate: ", args.lr)
 
 
 datasets.MNIST.urls = [
@@ -84,6 +89,7 @@ optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
 def train(epoch):
     model.train()
+    losses = []
     for batch_idx, (data, target) in enumerate(train_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
@@ -93,10 +99,12 @@ def train(epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
+        losses.append(loss.data[0])
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.data[0]))
+    print("\nTrain set: Average loss: {:.4f}".format(sum(losses) / len(losses)))
 
 def test(epoch):
     model.eval()
